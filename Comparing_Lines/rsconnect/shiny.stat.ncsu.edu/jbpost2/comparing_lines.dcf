@@ -1,0 +1,12 @@
+name: comparing_lines
+title: Comparing_Lines
+username: jbpost2
+account: jbpost2
+server: shiny.stat.ncsu.edu
+hostUrl: https://shiny.stat.ncsu.edu/__api__
+appId: 12
+bundleId: 62
+url: https://shiny.stat.ncsu.edu/jbpost2/Comparing_Lines/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE

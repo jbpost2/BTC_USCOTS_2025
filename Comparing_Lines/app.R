@@ -3,12 +3,16 @@
 library(shiny)
 library(shinythemes)
 library(shinyalert)
+library(shinydashboard)
 library(shinyjs)
 library(tidyverse)
 library(plotly)
 library(gridExtra)
 
-iris <- iris[1:50,]
+square_data <- readxl::read_excel("square_it_up.xlsx") |>
+  dplyr::rename("Avg_Life_Span" = `Average Life Span of People`,
+                "Average_Life_Span_Men" = `Average Life Span of Men`,
+                "Average_Life_Span_Women" = `Average Life Span of Women`)
 
 ui <- fluidPage(theme = shinytheme("sandstone"),
   titlePanel(title="Exploring Least Squares"),
@@ -20,19 +24,20 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
       fluidRow(
         sliderInput("slr_int", 
                     "Intercept",
-                    min = -2,
-                    max = 2,
-                    value = 0,
+                    min = -525,
+                    max = 100,
+                    value = 68,
                     ticks = FALSE,
-                    step = 0.01)
+                    step = 0.05)
       ),
       fluidRow(
           sliderInput("slr_slope", 
                       "Slope",
-                      min = -0.25,
-                      max = 2.25,
-                      value = 1,
-                      ticks = FALSE)
+                      min = 0,
+                      max = 0.5,
+                      value = 0,
+                      ticks = FALSE,
+                      step = 0.001)
       ),
       fluidRow(
           checkboxInput("SS_check_box", "Show Sum of Squares")
@@ -123,7 +128,7 @@ server <- function(input, output) {
     }
     colors <- c("User Line" = "darkgreen", "Least Squares Line" = "blue")
     #values for plotting purposes
-    x_values <- iris$Sepal.Length
+    x_values <- square_data$Year
     x_min <- min(x_values)
     x_max <- max(x_values)
     y_min <- min(c(user_line(x_min), user_line(x_max)))
@@ -131,19 +136,19 @@ server <- function(input, output) {
     
     #user stuff
     user_y <- user_line(x_values)
-    true_y <- iris$Sepal.Width
+    true_y <- square_data$Avg_Life_Span
     user_resids <- true_y - user_y
 
     #slr stuff
-    fit <- lm(Sepal.Width ~ Sepal.Length, data = iris)
+    fit <- lm(Avg_Life_Span ~ Year, data = square_data)
     coefs <- coef(fit)
     ls_y <- coefs[1] + coefs[2]*x_values
     ls_resids <- true_y - ls_y
     
     #base plot
-    g <- ggplot(iris) +
-      geom_point(aes(x = Sepal.Length, 
-                     y = Sepal.Width))
+    g <- ggplot(square_data) +
+      geom_point(aes(x = Year, 
+                     y = Avg_Life_Span))
     #user plot
     if(input$SS_check_box){
       g1 <- g + 
@@ -151,14 +156,14 @@ server <- function(input, output) {
                   mapping = aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
                   color = "black",
                   fill = "yellow",
-                  alpha = 0.1,
+                  alpha = 0.5,
                   linetype = "dashed")
       g2 <- g +
         geom_rect(data = data.frame(xmin = x_values, ymin = true_y, ymax= ls_y, xmax = x_values+abs(ls_resids)), 
                   mapping = aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
                   color = "black",
                   fill = "yellow",
-                  alpha = 0.1,
+                  alpha = 0.5,
                   linetype = "dashed")
     } else {
       g1 <- g
@@ -173,8 +178,8 @@ server <- function(input, output) {
     g2 <- g2 + 
       geom_smooth(method = "lm",
                     se = FALSE,
-                    aes(x = Sepal.Length,
-                        y = Sepal.Width))
+                    aes(x = Year,
+                        y = Avg_Life_Span))
     
     tooltip <- c("x", "y")
     
@@ -195,7 +200,7 @@ server <- function(input, output) {
     }
     colors <- c("User Line" = "darkgreen", "Least Squares Line" = "blue")
     #values for plotting purposes
-    x_values <- iris$Sepal.Length
+    x_values <- square_data$Year
     x_min <- min(x_values)
     x_max <- max(x_values)
     y_min <- min(c(user_line(x_min), user_line(x_max)))
@@ -203,22 +208,22 @@ server <- function(input, output) {
     
     #user stuff
     user_y <- user_line(x_values)
-    true_y <- iris$Sepal.Width
+    true_y <- square_data$Avg_Life_Span
     user_resids <- true_y - user_y
     
     #slr stuff
-    fit <- lm(Sepal.Width ~ Sepal.Length, data = iris)
+    fit <- lm(Avg_Life_Span ~ Year, data = square_data)
     coefs <- coef(fit)
     ls_y <- coefs[1] + coefs[2]*x_values
     ls_resids <- true_y - ls_y
     
-    results <- data.frame("Line" = "User Line", "DF" = nrow(iris)-2, "SSE" = round(sum(user_resids^2), 2), "MSE" = round(sum(user_resids^2)/(nrow(iris)-2), 2), "RMSE" = round(sqrt(sum(user_resids^2)/(nrow(iris)-2)), 2))
+    results <- data.frame("Line" = "User Line", "DF" = nrow(square_data)-2, "SSE" = round(sum(user_resids^2), 2), "MSE" = round(sum(user_resids^2)/(nrow(square_data)-2), 2), "RMSE" = round(sqrt(sum(user_resids^2)/(nrow(square_data)-2)), 2))
     if(input$SLR_check_box){
       results[2, ] <- c("Least Squares Line", 
-                        nrow(iris)-2,
+                        nrow(square_data)-2,
                         round(sum(ls_resids^2), 2), 
-                        round(sum(ls_resids^2)/(nrow(iris)-2), 2),
-                        round(sqrt(sum(ls_resids^2)/(nrow(iris)-2)), 2))
+                        round(sum(ls_resids^2)/(nrow(square_data)-2), 2),
+                        round(sqrt(sum(ls_resids^2)/(nrow(square_data)-2)), 2))
     }
     results[, c(1,3)]
   }, digits = 2)
@@ -228,7 +233,7 @@ server <- function(input, output) {
   output$slr_line <- renderTable({
     if (input$SLR_check_box){
       #find the SSE for the user line
-      fit <- lm(Sepal.Width ~ Sepal.Length, data = iris)
+      fit <- lm(Avg_Life_Span ~ Year, data = square_data)
       temp_df <- as.data.frame(summary(fit)$coefficients)
       info <- tibble(Parameter = c("Intercept", "Slope"),
                          "User Value" = c(input$slr_int, input$slr_slope),
@@ -247,7 +252,7 @@ server <- function(input, output) {
       input$slr_int + input$slr_slope * x
     }
     #values for plotting purposes
-    x_values <- iris$Sepal.Length
+    x_values <- square_data$Year
     x_min <- min(x_values)
     x_max <- max(x_values)
     y_min <- min(c(user_line(x_min), user_line(x_max)))
@@ -255,11 +260,11 @@ server <- function(input, output) {
     
     #user stuff
     user_y <- user_line(x_values)
-    true_y <- iris$Sepal.Width
+    true_y <- square_data$Avg_Life_Span
     user_resids <- true_y - user_y
     
     #slr stuff
-    fit <- lm(Sepal.Width ~ Sepal.Length, data = iris)
+    fit <- lm(Avg_Life_Span ~ Year, data = square_data)
     coefs <- coef(fit)
     ls_y <- coefs[1] + coefs[2]*x_values
     ls_resids <- true_y - ls_y
